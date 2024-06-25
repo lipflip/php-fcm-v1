@@ -39,16 +39,16 @@ class Client {
         $isPlayload = false;
 
         if (!is_null($notification)) {
-            $result = array_merge($result, $notification());
+            $result = array_replace_recursive($result, $notification());
             $isPlayload = true;
         }
         if (!is_null($data)) {
-            $result = array_merge($result, $data());
+            $result = array_replace_recursive($result, $data());
             $isPlayload = true;
         }
 
         if (!is_null($config)) {
-            $result = array_merge($result, $config());
+            $result = array_replace_recursive($result, $config());
         }
 
         if (!$isPlayload) {
@@ -61,7 +61,7 @@ class Client {
     /**
      * Fires built message
      */
-    public function fire() {
+    public function fire($returnResponseArray = false) {
         $options = array(
             'headers' => array(
                 'Authorization' => 'Bearer ' . $this -> credentials -> getAccessToken()
@@ -74,13 +74,15 @@ class Client {
         // Class name conflict occurs, when used as "Client"
         $client = new GuzzleHttp\Client($options);
         $response = $client -> request('POST', $this -> getURL(), $body);
+        $statusCode = $response -> getStatusCode();
 
-        if ($response -> getStatusCode() == 200) {
-            return true;
-        } else {
+        if(!$returnResponseArray){
+            return ($statusCode == 200);
+        }else{
             $result = json_decode($response -> getBody(), true);
-            return $result['error']['message'];
+            return array('status' => $statusCode, 'result' => $result);
         }
+
     }
 
     /**
