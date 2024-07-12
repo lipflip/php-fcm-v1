@@ -62,27 +62,34 @@ class Client {
      * Fires built message
      */
     public function fire($returnResponseArray = false) {
-        $options = array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $this -> credentials -> getAccessToken()
-            )
-        );
+        if(!isset($this->header_options)){
+            $this->header_options = array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $this -> credentials -> getAccessToken()
+                )
+            );
+        }
+
+        $options = $this->header_options;
         $body = array(
             self::CONTENT_TYPE => $this -> getPayload(),
             self::HTTP_ERRORS_OPTION => false
         );
-        // Class name conflict occurs, when used as "Client"
-        $client = new GuzzleHttp\Client($options);
-        $response = $client -> request('POST', $this -> getURL(), $body);
-        $statusCode = $response -> getStatusCode();
 
-        if(!$returnResponseArray){
-            return ($statusCode == 200);
-        }else{
-            $result = json_decode($response -> getBody(), true);
-            return array('status' => $statusCode, 'result' => $result);
+        if(!isset($this->guzzle_client)){
+            // Class name conflict occurs, when used as "Client"
+            $this->guzzle_client = new GuzzleHttp\Client($options);
         }
 
+        $client = $this->guzzle_client;
+        $response = $client -> request('POST', $this -> getURL(), $body);
+
+        if ($response -> getStatusCode() == 200) {
+            return true;
+        } else {
+            $result = json_decode($response -> getBody(), true);
+            return $result['error']['message'];
+        }
     }
 
     /**
